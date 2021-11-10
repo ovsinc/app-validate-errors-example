@@ -3,6 +3,7 @@ package ports
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -106,35 +107,36 @@ func NewHttpServer(
 	}
 }
 
-func ValidatorErrors(err error) map[string]*ErrorOut {
-	const _op = "validation"
+func ValidatorErrors(err error) map[string][]string {
+	const (
+		_op     = "validation"
+		_common = "common"
+	)
 
-	errFields := make(map[string]*ErrorOut)
+	log.Printf("[INFO] validation error: %v", err)
 
-	log.Printf("validation error: %v", err)
+	errFields := make(map[string][]string)
 
 	es, ok := err.(validation.Errors)
 	if !ok {
-		log.Println("validation error: not a ozzo validation error")
+		log.Println("[WARN] validation: not a ozzo validation error")
+		errFields[_common] = []string{err.Error()}
 		return errFields
 	}
 
-	// Make error message for each invalid field.
-	for i, err := range es {
-		out := ErrorOut{
-			Operation: _op,
-		}
+	out := make([]string, 0, len(es))
 
+	for i, err := range es {
 		em, ok := err.(validation.Error)
 		if !ok {
-			out.Message = err.Error()
-			continue
+			out = append(out, err.Error())
+		} else {
+			out = append(
+				out,
+				fmt.Sprintf("%s: %s", em.Code(), em.Error()),
+			)
 		}
-
-		out.ID = em.Code()
-		out.Message = em.Error()
-
-		errFields[i] = &out
+		errFields[i] = out
 	}
 
 	return errFields
@@ -163,7 +165,7 @@ func (h *httpServer) ChangePassword(
 					Message: "Ошибка проверка подлинности пользователя",
 				},
 				Error: ErrorPayload{
-					_old_pass: &ErrorOut{Message: "Ошибка аутентификации"},
+					_old_pass: []string{"Ошибка аутентификации"},
 				},
 			},
 			http.StatusBadRequest,
@@ -189,7 +191,7 @@ func (h *httpServer) ChangePassword(
 					Message: "Ошибка изменения пароля",
 				},
 				Error: ErrorPayload{
-					_new_pass: &ErrorOut{Message: "Не удалось изменить пароль"},
+					_new_pass: []string{"Не удалось изменить пароль"},
 				},
 			},
 			http.StatusInternalServerError,

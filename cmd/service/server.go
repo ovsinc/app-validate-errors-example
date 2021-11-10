@@ -37,7 +37,7 @@ func getGouters(app *fiber.App) Routers {
 						Message: "Bad request",
 					},
 					Error: ports.ErrorPayload{
-						"common": &ports.ErrorOut{Message: "Only JSON allowed!"},
+						"common": []string{"Only JSON allowed!"},
 					},
 				},
 			)

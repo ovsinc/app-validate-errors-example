@@ -39,7 +39,7 @@ func (h *handler) ChangePassword(c *fiber.Ctx) error {
 						Message: "Bad request",
 					},
 					Error: ports.ErrorPayload{
-						"common": &ports.ErrorOut{Message: "Request is bad"},
+						"common": []string{"Request is bad"},
 					},
 				},
 			)

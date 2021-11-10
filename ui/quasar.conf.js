@@ -9,6 +9,7 @@
 /* eslint-env node */
 const ESLintPlugin = require('eslint-webpack-plugin')
 const { configure } = require('quasar/wrappers')
+const { resolve } = require('path')
 
 module.exports = configure(function (ctx) {
   return {
@@ -22,7 +23,8 @@ module.exports = configure(function (ctx) {
     // --> boot files are part of "main.js"
     // https://quasar.dev/quasar-cli/boot-files
     boot: [
-      'axios'
+      'axios',
+      'i18n'
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -65,12 +67,31 @@ module.exports = configure(function (ctx) {
       // Options below are automatically set depending on the env, set them if you want to override
       // extractCSS: false,
 
-      // https://quasar.dev/quasar-cli/handling-webpack
-      // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain
-      chainWebpack (chain) {
+      chainWebpack: chain => {
+        chain.module
+          .rule('i18n-resource')
+          .test(/\.(json5?|ya?ml)$/)
+          .include.add(resolve(__dirname, './src/i18n'))
+          .end()
+          .type('javascript/auto')
+          .use('i18n-resource')
+          .loader('@intlify/vue-i18n-loader')
+        chain.module
+          .rule('i18n')
+          .resourceQuery(/blockType=i18n/)
+          .type('javascript/auto')
+          .use('i18n')
+          .loader('@intlify/vue-i18n-loader')
         chain.plugin('eslint-webpack-plugin')
           .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
       }
+
+      // https://quasar.dev/quasar-cli/handling-webpack
+      // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain
+      // chainWebpack (chain) {
+      //   chain.plugin('eslint-webpack-plugin')
+      //     .use(ESLintPlugin, [{ extensions: ['js', 'vue'] }])
+      // }
     },
 
     // Full list of options: https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-devServer

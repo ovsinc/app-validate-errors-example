@@ -11,7 +11,7 @@ type ErrorOut struct {
 	Context   map[string]interface{} `json:"context"`
 }
 
-type ErrorPayload map[string]*ErrorOut
+type ErrorPayload map[string][]string
 
 type Common struct {
 	Message string `json:"message"`
