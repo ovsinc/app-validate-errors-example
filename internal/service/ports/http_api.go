@@ -28,16 +28,16 @@ func (req *ChangePasswordRequest) Validate() error {
 	return validation.ValidateStruct(
 		req,
 		validation.Field(&req.Login,
-			is.Alphanumeric, validation.Required, validation.Length(2, 0)),
+			is.Alphanumeric, validation.Required, validation.Length(2, 100)),
 		validation.Field(&req.Password,
-			validation.Required, validation.Length(5, 0), validation.By(checkSimplePass)),
+			validation.Required, validation.Length(5, 100), validation.By(checkSimplePass)),
 	)
 }
 
 var (
-	ErrNotString        = errors.New("value is not a string")
-	ErrNoDigits         = errors.New("value not contain digits")
-	ErrNoCapitalLetters = errors.New("value not contain capital letters")
+	ErrNotString               = errors.New("value is not a string")
+	ErrNotEnoughDigits         = errors.New("there are not enough digits in the value")
+	ErrNotEnoughCapitalLetters = errors.New("there are not enough capital letters in the value")
 )
 
 const (
@@ -75,9 +75,9 @@ func checkSimplePass(value interface{}) error {
 
 	switch {
 	case digits < _minDigit:
-		return ErrNoDigits
+		return ErrNotEnoughDigits
 	case capital < _minCapital:
-		return ErrNoCapitalLetters
+		return ErrNotEnoughCapitalLetters
 	}
 
 	return nil
@@ -201,7 +201,7 @@ func (h *httpServer) ChangePassword(
 	return &ChangePasswordResponse{
 			Common: Common{
 				Success: true,
-				Message: "Смена пароля выполнена успешно",
+				Message: "Смена пароля завершена",
 			},
 			Payload: Payload{
 				Status: "Смена пароля выполнена успешно",

@@ -1,0 +1,55 @@
+[ChangePasswordError]
+description = "Ошибка изменения пароля"
+other = "Change password error"
+
+[ChangePasswordErrorMsg]
+description = "Не удалось изменить пароль"
+other = "Failed to change password "
+
+[ChangePasswordOK]
+description = "Смена пароля завершена"
+other = "Password change completed"
+
+[ChangePasswordOKMsg]
+description = "Смена пароля выполнена успешно"
+other = "Password change completed successfully"
+
+[UserAuthError]
+description = "Ошибка проверка подлинности пользователя с помощью текущего пароля"
+other = "Authentication error"
+
+[ValidationError]
+description = "Ошибка валидации запроса"
+other = "Validation failed"
+
+[ValidationInternalErrNotEnoughCapitalLetters]
+description = "Валидация. Значение должно содержать не менее {{.Digit}} заглавной буквы"
+few = "The {{.Value}} must contain at least {{.Digit}} capital letters"
+many = "The {{.Value}} must contain at least {{.Digit}} capital letters"
+one = "The {{.Value}} must contain at least {{.Digit}} capital letter"
+other = "The {{.Value}} must contain at least {{.Digit}} capital letters"
+two = "The {{.Value}} must contain at least {{.Digit}} capital letters"
+
+[ValidationInternalErrNotEnoughDigits]
+description = "Валидация. Значение должно содержать не менее {{.Digit}} цифры"
+few = "The {{.Value}} must contain at least {{.Digit}} digits"
+many = "The {{.Value}} must contain at least {{.Digit}} digits"
+one = "The {{.Value}} must contain at least {{.Digit}} digit"
+other = "The {{.Value}} must contain at least {{.Digit}} digits"
+two = "The {{.Value}} must contain at least {{.Digit}} digits"
+
+[ValidationInternalErrNotString]
+description = "Валидация. Значение должно быть строкой"
+other = "The {{.Value}} must be a string"
+
+[validation_is_alphanumeric]
+description = "Валидация. Значение должно содержать цифры и буквы латинского алфавита"
+other = "The {{.Value}} must contain English letters and digits only"
+
+[validation_length_out_of_range]
+description = "Валидация. Длина значения должна быть между {{.min}} and {{.max}}"
+other = "The length must be between {{.min}} and {{.max}}"
+
+[validation_required]
+description = "Валидация. Значение должно быть указано"
+other = "The {{.Value}} cannot be blank"
