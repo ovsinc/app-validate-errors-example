@@ -17,6 +17,7 @@ func registryAPIHandler(lifecycle fx.Lifecycle, routers Routers, h ports.Passwor
 			OnStart: func(context.Context) error {
 				hdlr := handler{h: h}
 				routers.API.Add(http.MethodPost, "/v1", hdlr.ChangePassword)
+				routers.Helth.Add(http.MethodGet, "/", hdlr.Health)
 				return nil
 			},
 		},
@@ -53,4 +54,8 @@ func (h *handler) ChangePassword(c *fiber.Ctx) error {
 	}
 
 	return c.Status(code).JSON(resp)
+}
+
+func (h *handler) Health(c *fiber.Ctx) error {
+	return c.SendStatus(http.StatusOK)
 }

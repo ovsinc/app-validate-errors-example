@@ -1,0 +1,7 @@
+FROM busybox:latest
+
+WORKDIR /
+
+COPY  static /static
+
+CMD ["/static"]

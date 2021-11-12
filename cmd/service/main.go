@@ -16,7 +16,6 @@ const (
 	GracefulStopTimeout = 10 * time.Second
 	StartTimeout        = 10 * time.Second
 	_static_path        = "/"
-	_api_path           = "/api"
 )
 
 var (
@@ -39,7 +38,6 @@ func main() {
 			httpServer,
 
 			getGouters,
-			getStaticDir,
 
 			ports.NewHttpServer,
 			app.NewCheckPassword,
@@ -49,7 +47,6 @@ func main() {
 
 		fx.Invoke(
 			registryAPIHandler,
-			registryStaticHandler,
 			startService,
 		),
 	)

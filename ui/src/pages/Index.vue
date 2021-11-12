@@ -74,7 +74,6 @@ import { ref, defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useQuasar } from 'quasar'
 import { api } from 'boot/axios'
-// import i18n from 'boot/i18n'
 
 export default defineComponent({
   name: 'PageIndex',
@@ -94,7 +93,6 @@ export default defineComponent({
       api.post('/api/v1', req)
         .then(
           (response) => {
-            console.log('resp:', response.data)
             setValidationErrors({})
 
             if (response.data.success) {
@@ -111,17 +109,12 @@ export default defineComponent({
           (error) => {
             let message = t('change_net_fail_message_default')
 
-            console.log(error)
             if (error.response) {
               setValidationErrors(error.response.data.errors)
-
-              console.log(error.response.data)
-              console.log(error.response.status)
-
               message = error.response.data.message
             } else {
               setValidationErrors({
-                common: ['common error']
+                common: [message]
               })
             }
 
