@@ -1,20 +1,51 @@
 package ports
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"log"
+	"errors"
 	"net/http"
-	"strings"
-	"unicode/utf8"
 
-	"github.com/ovsinc/errors"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/ovsinc/app-validate-errors-example/internal/service/domain"
+)
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
+const (
+	_old_pass = "old_pass"
+	_new_pass = "new_pass"
+	_login    = "login"
+
+	UserAuthError       = "UserAuthError"
+	ValidationError     = "ValidationError"
+	ChangePasswordError = "ChangePasswordError"
+	ChangePasswordOK    = "ChangePasswordOK"
+)
+
+var (
+	ErrAuthFailed           = errors.New("old pass auth failed")
+	ErrChangePasswordFailed = errors.New("change password failed")
+	ErrValidationError      = errors.New("request validation error")
+
+	MsgUserAuthError = i18n.Message{
+		ID:          UserAuthError,
+		Description: "Ошибка проверка подлинности пользователя с помощью текущего пароля",
+		Other:       "Authentication error",
+	}
+	MsgValidationErrorMsg = i18n.Message{
+		ID:          ValidationError,
+		Description: "Ошибка валидации запроса",
+		Other:       "Validation failed",
+	}
+	MsgChangePasswordError = i18n.Message{
+		ID:          ChangePasswordError,
+		Description: "Не удалось изменить пароль",
+		Other:       "Failed to change password",
+	}
+	MsgChangePasswordOK = i18n.Message{
+		ID:          ChangePasswordOK,
+		Description: "Смена пароля выполнена успешно",
+		Other:       "Password change completed successfully",
+	}
 )
 
 type ChangePasswordRequest struct {
@@ -24,148 +55,46 @@ type ChangePasswordRequest struct {
 	Lang        string `json:"lang"`
 }
 
-func (req *ChangePasswordRequest) Validate() error {
-	return validation.ValidateStruct(
-		req,
-		validation.Field(&req.Login,
-			is.Alphanumeric, validation.Required, validation.Length(2, 100)),
-		validation.Field(&req.Password,
-			validation.Required, validation.Length(5, 100), validation.By(checkSimplePass)),
-	)
-}
-
-var (
-	ErrNotString               = errors.New("value is not a string")
-	ErrNotEnoughDigits         = errors.New("there are not enough digits in the value")
-	ErrNotEnoughCapitalLetters = errors.New("there are not enough capital letters in the value")
-)
-
-const (
-	_minDigit   = 1
-	_minCapital = 1
-)
-
-func checkSimplePass(value interface{}) error {
-	var (
-		s  string
-		ok bool
-	)
-	if s, ok = value.(string); !ok {
-		return ErrNotString
-	}
-
-	var digits, alpha, capital int
-
-	scanner := bufio.NewScanner(strings.NewReader(s))
-	scanner.Split(bufio.ScanRunes)
-	for scanner.Scan() {
-		r, _ := utf8.DecodeRune(scanner.Bytes())
-		switch {
-		case r >= '0' && r <= '9':
-			digits++
-		case r >= 'a' && r <= 'z':
-			alpha++
-		case r >= 'A' && r <= 'Z':
-			capital++
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	switch {
-	case digits < _minDigit:
-		return ErrNotEnoughDigits
-	case capital < _minCapital:
-		return ErrNotEnoughCapitalLetters
-	}
-
-	return nil
-}
-
 type ChangePasswordResponse struct {
-	Common
+	Success bool         `json:"success"`
 	Payload Payload      `json:"payload"`
 	Error   ErrorPayload `json:"errors"`
-}
-
-type PasswordChange interface {
-	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, int, error)
 }
 
 type httpServer struct {
 	appChanage domain.ChangePasswordI
 	appCheck   domain.CheckPasswordI
+	bundle     *i18n.Bundle
 }
 
 func NewHttpServer(
 	appChanage domain.ChangePasswordI,
-	appCheck domain.CheckPasswordI) PasswordChange {
+	appCheck domain.CheckPasswordI,
+	bundle *i18n.Bundle,
+) PasswordChange {
 	return &httpServer{
 		appChanage: appChanage,
 		appCheck:   appCheck,
+		bundle:     bundle,
 	}
 }
-
-func ValidatorErrors(err error) map[string][]string {
-	const (
-		_op     = "validation"
-		_common = "common"
-	)
-
-	log.Printf("[INFO] validation error: %v", err)
-
-	errFields := make(map[string][]string)
-
-	es, ok := err.(validation.Errors)
-	if !ok {
-		log.Println("[WARN] validation: not a ozzo validation error")
-		errFields[_common] = []string{err.Error()}
-		return errFields
-	}
-
-	out := make([]string, 0, len(es))
-
-	for i, err := range es {
-		em, ok := err.(validation.Error)
-		if !ok {
-			out = append(out, err.Error())
-		} else {
-			out = append(
-				out,
-				fmt.Sprintf("%s: %s", em.Code(), em.Error()),
-			)
-		}
-		errFields[i] = out
-	}
-
-	return errFields
-}
-
-var (
-	ErrAuthFailed           = errors.New("old pass auth failed")
-	ErrChangePasswordFailed = errors.New("change password failed")
-	ErrValidationError      = errors.New("request validation error")
-)
-
-const (
-	_old_pass = "old_pass"
-	_new_pass = "new_pass"
-	_login    = "login"
-)
 
 func (h *httpServer) ChangePassword(
 	ctx context.Context,
 	req *ChangePasswordRequest,
 ) (*ChangePasswordResponse, int, error) {
+
+	localizer := i18n.NewLocalizer(h.bundle, req.Lang)
+
 	if err := h.appCheck.Handle(ctx, req.Login, req.OldPassword); err != nil {
+		msg := "Authentication error"
+		if lmsg, lerr := localizer.LocalizeMessage(&MsgUserAuthError); lerr == nil {
+			msg = lmsg
+		}
 		return &ChangePasswordResponse{
-				Common: Common{
-					Success: false,
-					Message: "Ошибка проверка подлинности пользователя",
-				},
+				Success: false,
 				Error: ErrorPayload{
-					_old_pass: []string{"Ошибка аутентификации"},
+					_old_pass: []string{msg},
 				},
 			},
 			http.StatusBadRequest,
@@ -174,37 +103,36 @@ func (h *httpServer) ChangePassword(
 
 	if err := req.Validate(); err != nil {
 		return &ChangePasswordResponse{
-				Common: Common{
-					Success: false,
-					Message: "Ошибка валидации запроса",
-				},
-				Error: ValidatorErrors(err),
+				Success: false,
+				Error:   ValidatorErrors(err, localizer),
 			},
 			http.StatusBadRequest,
 			ErrValidationError
 	}
 
 	if err := h.appChanage.Handle(ctx, req.Login, req.Password); err != nil {
+		merr := "Change password error"
+		if lmsg, lerr := localizer.LocalizeMessage(&MsgChangePasswordError); lerr == nil {
+			merr = lmsg
+		}
 		return &ChangePasswordResponse{
-				Common: Common{
-					Success: false,
-					Message: "Ошибка изменения пароля",
-				},
+				Success: false,
 				Error: ErrorPayload{
-					_new_pass: []string{"Не удалось изменить пароль"},
+					_new_pass: []string{merr},
 				},
 			},
 			http.StatusInternalServerError,
 			ErrChangePasswordFailed
 	}
 
+	msg := "Password change completed successfully"
+	if lmsg, lerr := localizer.LocalizeMessage(&MsgChangePasswordOK); lerr == nil {
+		msg = lmsg
+	}
 	return &ChangePasswordResponse{
-			Common: Common{
-				Success: true,
-				Message: "Смена пароля завершена",
-			},
+			Success: true,
 			Payload: Payload{
-				Status: "Смена пароля выполнена успешно",
+				Status: msg,
 			},
 		},
 		http.StatusOK,

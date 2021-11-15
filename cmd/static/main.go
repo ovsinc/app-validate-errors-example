@@ -5,10 +5,6 @@ import (
 	"time"
 
 	"go.uber.org/fx"
-
-	"github.com/ovsinc/app-validate-errors-example/internal/service/adapter"
-	"github.com/ovsinc/app-validate-errors-example/internal/service/app"
-	"github.com/ovsinc/app-validate-errors-example/internal/service/ports"
 )
 
 const (
@@ -24,15 +20,9 @@ func main() {
 
 		fx.Provide(
 			httpServer,
-
-			ports.NewHttpServer,
-			app.NewCheckPassword,
-			app.NewChangePassword,
-			adapter.NewPasswordRepository,
 		),
 
 		fx.Invoke(
-			registryStaticHandler,
 			startService,
 		),
 	)

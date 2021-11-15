@@ -1,0 +1,89 @@
+version: '3.9'
+
+
+services:
+
+  static-rust:
+    image: ${static_rust_image:-test-static-rust:latest}
+    environment:
+      - PORT=${STATIC_RUST_PORT:-4000}
+    ports:
+      - target: ${STATIC_RUST_PORT:-4000}
+        published: 82
+        protocol: tcp
+        mode: ingress
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 3s
+      restart_policy:
+        condition: any
+        max_attempts: 20
+        window: 10s
+        delay: 3s
+      resources:
+        limits:
+          cpus: "2"
+          memory: "0.5G"
+        reservations:
+          cpus: "0.5"
+          memory: "0.2G"
+
+  static:
+    image: ${static_image:-test-static:latest}
+    environment:
+      - PORT=${STATIC_PORT:-3000}
+    ports:
+      - target: ${STATIC_PORT:-3000}
+        published: 81
+        protocol: tcp
+        mode: ingress
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 3s
+      restart_policy:
+        condition: any
+        max_attempts: 20
+        window: 10s
+        delay: 3s
+      resources:
+        limits:
+          cpus: "2"
+          memory: "0.5G"
+        reservations:
+          cpus: "0.5"
+          memory: "0.2G"
+
+  nginx:
+    image: nginx:1.19
+    volumes:
+      - ../cmd/static/dist/spa:/usr/share/nginx/html:ro
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: ingress
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 3s
+      restart_policy:
+        condition: any
+        max_attempts: 20
+        window: 10s
+        delay: 3s
+      resources:
+        limits:
+          cpus: "2"
+          memory: "0.5G"
+        reservations:
+          cpus: "0.5"
+          memory: "0.2G"
+

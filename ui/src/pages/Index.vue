@@ -14,6 +14,7 @@
       map-options
       options-dense
       style="min-width: 150px"
+      @update="updateLang"
     />
 
     <form
@@ -93,7 +94,7 @@ export default defineComponent({
       api.post('/api/v1', req)
         .then(
           (response) => {
-            setValidationErrors({})
+            errors.value = {}
 
             if (response.data.success) {
               $q.notify({
@@ -109,13 +110,13 @@ export default defineComponent({
           (error) => {
             let message = t('change_net_fail_message_default')
 
-            if (error.response) {
-              setValidationErrors(error.response.data.errors)
+            if (error.response && error.response.data.errors) {
+              errors.value = error.response.data.errors
               message = error.response.data.message
             } else {
-              setValidationErrors({
+              errors.value = {
                 common: [message]
-              })
+              }
             }
 
             $q.notify({
@@ -149,13 +150,21 @@ export default defineComponent({
       return getValidationErrorMessages(field).length !== 0
     }
 
-    function setValidationErrors (payload) {
-      errors.value = payload
+    function updateLang () {
+      reset()
+    }
+
+    function reset () {
+      login.value = null
+      oldPassword.value = null
+      newPassword.value = null
+      errors.value = {}
     }
 
     return {
       getValidationErrors,
       hasValidationErrors,
+      updateLang,
 
       login,
       oldPassword,
@@ -178,10 +187,7 @@ export default defineComponent({
       },
 
       onReset () {
-        login.value = null
-        oldPassword.value = null
-        newPassword.value = null
-        setValidationErrors({})
+        reset()
       }
     }
   }

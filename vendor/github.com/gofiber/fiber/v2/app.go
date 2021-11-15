@@ -34,7 +34,7 @@ import (
 )
 
 // Version of current fiber package
-const Version = "2.21.0"
+const Version = "2.22.0"
 
 // Handler defines a function to serve HTTP requests.
 type Handler = func(*Ctx) error
@@ -897,7 +897,7 @@ func (app *App) init() *App {
 }
 
 // ErrorHandler is the application's method in charge of finding the
-// appropiate handler for the given request. It searches any mounted
+// appropriate handler for the given request. It searches any mounted
 // sub fibers by their prefixes and if it finds a match, it uses that
 // error handler. Otherwise it uses the configured error handler for
 // the app, which if not set is the DefaultErrorHandler.

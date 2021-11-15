@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -40,41 +39,20 @@ func httpServer() *fiber.App {
 }
 
 type Routers struct {
-	API   fiber.Router
-	Helth fiber.Router
+	API     fiber.Router
+	Health  fiber.Router
+	Monotor fiber.Router
 }
 
 func getGouters(app *fiber.App) Routers {
 	apiGroup := app.Group(_api_path)
 	apiGroup.Use(func(c *fiber.Ctx) error {
-		// поддерживаем только POST|post методы
-		if !bytes.Equal(
-			bytes.ToLower([]byte(http.MethodPost)),
-			bytes.ToLower(c.Request().Header.Method()),
-		) {
-			return c.Status(http.StatusMethodNotAllowed).
-				JSON(
-					ports.ChangePasswordResponse{
-						Common: ports.Common{
-							Success: false,
-							Message: "Bad request",
-						},
-						Error: ports.ErrorPayload{
-							"common": []string{"Only POST method allowed"},
-						},
-					},
-				)
-		}
-
 		// поддерживаем только JSON
 		if !c.Is("json") {
 			return c.Status(http.StatusBadRequest).
 				JSON(
 					ports.ChangePasswordResponse{
-						Common: ports.Common{
-							Success: false,
-							Message: "Bad request",
-						},
+						Success: false,
 						Error: ports.ErrorPayload{
 							"common": []string{"Only JSON allowed!"},
 						},
@@ -85,20 +63,12 @@ func getGouters(app *fiber.App) Routers {
 		return c.Next()
 	})
 
-	helthGroup := app.Group(_heath_path)
-	helthGroup.Use(func(c *fiber.Ctx) error {
-		if !bytes.Equal(
-			bytes.ToLower([]byte(http.MethodGet)),
-			bytes.ToLower(c.Request().Header.Method()),
-		) {
-			return c.SendStatus(http.StatusMethodNotAllowed)
-		}
-		return c.Next()
-	})
+	healthGroup := app.Group(_heath_path)
 
 	return Routers{
-		API:   apiGroup,
-		Helth: helthGroup,
+		API:     apiGroup,
+		Health:  healthGroup,
+		Monotor: healthGroup,
 	}
 }
 

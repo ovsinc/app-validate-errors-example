@@ -5,6 +5,8 @@ _BUILD_DIR := "${_CURDIR}/build"
 
 STATIC_IMAGE := "test-static:latest"
 API_IMAGE := "test-api:latest"
+STATIC_RUST_IMAGE := "test-static-rust:latest"
+
 
 STATIC_NAME_CN = "test-static"
 API_NAME_CN = "test-api"
@@ -48,11 +50,15 @@ build_api: ## Build the API server
 build_docker: ## Build the Docker images
 	@docker build \
 		--tag "${STATIC_IMAGE}" \
-		--file "${_BUILD_DIR}/docker/static.docker" \
+		--file "${_CURDIR}/docker/static.docker" \
 		"${_BUILD_DIR}"
 	@docker build \
 		--tag "${API_IMAGE}" \
-		--file "${_BUILD_DIR}/docker/service.docker" \
+		--file "${_CURDIR}/docker/service.docker" \
+		"${_BUILD_DIR}"
+	@docker build \
+		--tag "${STATIC_RUST_IMAGE}" \
+		--file "${_CURDIR}/docker/static_rust.docker" \
 		"${_BUILD_DIR}"
 
 .PHONY: clean
@@ -64,7 +70,7 @@ clean: ## Clean
 
 .PHONY: run
 run: ## Run docker services
-	@docker stack deploy -c "${_BUILD_DIR}/docker/docker-compose.yml" test
+	@docker stack deploy -c "${_CURDIR}/docker/docker-compose.yml" test
 
 stop: ## Stop docker services
 	@docker stack rm test

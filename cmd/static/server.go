@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	expvarmw "github.com/gofiber/fiber/v2/middleware/expvar"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"go.uber.org/fx"
@@ -21,6 +22,10 @@ const (
 	_portEnv     = "APP_PORT"
 	_port        = 3000
 )
+
+// Embed a directory
+//go:embed dist/spa
+var embedDirStatic embed.FS
 
 func httpServer() *fiber.App {
 	app := fiber.New(fiber.Config{
@@ -35,6 +40,19 @@ func httpServer() *fiber.App {
 		IdleTimeout:  120 * time.Second,
 	})
 	app.Use(logger.New())
+	app.Use(
+		_static_path,
+		filesystem.New(
+			filesystem.Config{
+				Root:       http.FS(embedDirStatic),
+				PathPrefix: "dist/spa",
+				Browse:     true,
+				Index:      "index.html",
+				MaxAge:     600,
+			},
+		),
+	)
+	app.Use(expvarmw.New())
 	return app
 }
 
@@ -58,32 +76,6 @@ func startService(lifecycle fx.Lifecycle, app *fiber.App) error {
 			OnStop: func(context.Context) error {
 				log.Println("Stop server on")
 				return app.Shutdown()
-			},
-		},
-	)
-	return nil
-}
-
-// Embed a directory
-//go:embed dist/spa
-var embedDirStatic embed.FS
-
-func registryStaticHandler(lifecycle fx.Lifecycle, app *fiber.App) error {
-	lifecycle.Append(
-		fx.Hook{
-			OnStart: func(context.Context) error {
-				app.Use(
-					_static_path,
-					filesystem.New(
-						filesystem.Config{
-							Root:       http.FS(embedDirStatic),
-							PathPrefix: "dist/spa",
-							Browse:     true,
-							Index:      "index.html",
-						},
-					),
-				)
-				return nil
 			},
 		},
 	)

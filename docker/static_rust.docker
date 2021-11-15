@@ -1,0 +1,7 @@
+FROM ubuntu:latest
+
+WORKDIR /
+
+COPY  ai-ui /ai-ui
+
+CMD ["/ai-ui"]

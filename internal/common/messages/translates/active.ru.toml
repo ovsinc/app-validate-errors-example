@@ -1,0 +1,60 @@
+[ChangePasswordError]
+description = "Не удалось изменить пароль"
+hash = "sha1-ada542ce924f49c6fc5a4fc9f6a08a473718b492"
+other = "Не удалось изменить пароль"
+
+[ChangePasswordOK]
+description = "Смена пароля выполнена успешно"
+hash = "sha1-7ce0180679f8a61780ab6d2a2829ad89733b6044"
+other = "Смена пароля выполнена успешно"
+
+[ParseRequestFailed]
+description = "Ошибка анализа запроса"
+hash = "sha1-5c201f773365b69d014046848e349b810507c857"
+other = "Ошибка анализа запроса"
+
+[UserAuthError]
+description = "Ошибка проверка подлинности пользователя с помощью текущего пароля"
+hash = "sha1-e2e4289ce28ef7e4c379e62ffe90e2715979bcfe"
+other = "Ошибка аутентифкации"
+
+[ValidationError]
+description = "Ошибка валидации запроса"
+hash = "sha1-d14408e82fcf0ede77881743249433ddb37df0ef"
+other = "Ошибка валидации запроса"
+
+[ValidationInternalErrNotEnoughCapitalLetters]
+description = "Валидация. Значение должно содержать не менее {{.digit}} заглавной буквы"
+few = "The value must contain at least {{.digit}} capital letters"
+hash = "sha1-2d0f0d2926d3d65d761d8ea243526664b6654dbd"
+many = "Значение должно содержать не менее {{.digit}} заглавных букв"
+one = "Значение должно содержать не менее {{.digit}} заглавной буквы"
+other = "Значение должно содержать не менее {{.digit}} заглавных букв"
+
+[ValidationInternalErrNotEnoughDigits]
+description = "Валидация. Значение должно содержать не менее {{.digit}} цифры"
+few = "Значение должно содержать не менее {{.digit}} цифр"
+hash = "sha1-3f74107d7a6e688e3a8506cba47943ba4c2dbb04"
+many = "Значение должно содержать не менее {{.digit}} цифр"
+one = "Значение должно содержать не менее {{.digit}} цифры"
+other = "Значение должно содержать не менее {{.digit}} цифр"
+
+[ValidationInternalErrNotString]
+description = "Валидация. Значение должно быть строкой"
+hash = "sha1-b1c9728ea0432acdf6a788138200c090b2be1736"
+other = "Значение должно быть строкой"
+
+[validation_is_alphanumeric]
+description = "Валидация. Значение должно содержать цифры и буквы латинского алфавита"
+hash = "sha1-48975296c043cfc8fdc6ac29591b05af6553320c"
+other = "Значение должно содержать цифры и буквы латинского алфавита"
+
+[validation_length_out_of_range]
+description = "Валидация. Длина значения должна быть между {{.min}} и {{.max}}"
+hash = "sha1-36715ab1494acf4cf0287b8f070fa2381fc25720"
+other = "Длина значения должна быть между {{.min}} и {{.max}}"
+
+[validation_required]
+description = "Валидация. Значение должно быть указано"
+hash = "sha1-ac85df5a04e25ce5cc84e863a2a2a2762f394fd2"
+other = "Значение должно быть указано"

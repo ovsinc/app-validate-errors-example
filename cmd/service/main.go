@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/ovsinc/app-validate-errors-example/internal/common/messages"
 	"github.com/ovsinc/app-validate-errors-example/internal/service/adapter"
 	"github.com/ovsinc/app-validate-errors-example/internal/service/app"
 	"github.com/ovsinc/app-validate-errors-example/internal/service/ports"
@@ -38,6 +39,7 @@ func main() {
 			httpServer,
 
 			getGouters,
+			messages.MustNewBundle,
 
 			ports.NewHttpServer,
 			app.NewCheckPassword,

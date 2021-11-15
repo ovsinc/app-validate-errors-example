@@ -1,5 +1,9 @@
 package ports
 
+import (
+	"context"
+)
+
 type Payload struct {
 	Status string `json:"status"`
 }
@@ -13,7 +17,8 @@ type ErrorOut struct {
 
 type ErrorPayload map[string][]string
 
-type Common struct {
-	Message string `json:"message"`
-	Success bool   `json:"success"`
+//
+
+type PasswordChange interface {
+	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, int, error)
 }

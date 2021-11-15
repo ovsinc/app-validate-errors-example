@@ -8,7 +8,14 @@ import axios from 'axios'
 // "export default () => {}" function below (which runs individually
 // for each client)
 
-const host = 'http://test-api'
+let host = 'http://127.0.0.1:8000'
+
+const location = window.location
+
+if (location.href) {
+  host = 'http://' + location.host
+}
+
 const api = axios.create({ baseURL: host })
 
 export default boot(({ app }) => {
