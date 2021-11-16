@@ -7,14 +7,12 @@
       v-model="locale"
       :options="localeOptions"
       class="q-pb-xl"
-      label="Quasar Language"
       dense
       borderless
       emit-value
       map-options
       options-dense
       style="min-width: 150px"
-      @update="updateLang"
     />
 
     <form
@@ -138,43 +136,27 @@ export default defineComponent({
       return []
     }
 
-    function getValidationErrors (field) {
-      const errs = getValidationErrorMessages(field)
-      if (errs.length !== 0) {
-        return errs.join('; ')
-      }
-      return ''
-    }
-
-    function hasValidationErrors (field) {
-      return getValidationErrorMessages(field).length !== 0
-    }
-
-    function updateLang () {
-      reset()
-    }
-
-    function reset () {
-      login.value = null
-      oldPassword.value = null
-      newPassword.value = null
-      errors.value = {}
-    }
-
     return {
-      getValidationErrors,
-      hasValidationErrors,
-      updateLang,
-
       login,
       oldPassword,
-      newPassword,
 
       locale,
       localeOptions: [
         { value: 'ru-RU', label: 'Russian' },
         { value: 'en-US', label: 'English' }
       ],
+
+      getValidationErrors (field) {
+        const errs = getValidationErrorMessages(field)
+        if (errs.length !== 0) {
+          return errs.join('; ')
+        }
+        return ''
+      },
+
+      hasValidationErrors (field) {
+        return getValidationErrorMessages(field).length !== 0
+      },
 
       onSubmit () {
         const req = {
@@ -187,7 +169,10 @@ export default defineComponent({
       },
 
       onReset () {
-        reset()
+        login.value = null
+        oldPassword.value = null
+        newPassword.value = null
+        errors.value = {}
       }
     }
   }

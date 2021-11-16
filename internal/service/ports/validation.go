@@ -3,6 +3,7 @@ package ports
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -110,30 +111,15 @@ func ValidatorErrors(err error, localizer *i18n.Localizer) map[string][]string {
 				out := make([]string, 0, len(es.errs))
 				for _, em := range es.errs {
 					msg := err.Error()
-					switch {
-					case em.digits > 0:
-						if lmsg, lerr := localizer.Localize(&i18n.LocalizeConfig{
-							MessageID:   em.code,
-							PluralCount: em.digits,
-							TemplateData: map[string]int{
-								"digit": em.digits,
-							},
-						}); lerr == nil {
-							msg = lmsg
-						}
 
-					case em.capital > 0:
-						if lmsg, lerr := localizer.Localize(&i18n.LocalizeConfig{
-							MessageID:   em.code,
-							PluralCount: em.capital,
-							TemplateData: map[string]int{
-								"digit": em.capital,
-							},
-						}); lerr == nil {
-							msg = lmsg
-						}
-					default:
-						log.Println("*checkPassErrors", "no val")
+					if lmsg, lerr := localizer.Localize(&i18n.LocalizeConfig{
+						MessageID:   em.code,
+						PluralCount: em.needVal,
+						TemplateData: map[string]int{
+							"digit": em.needVal,
+						},
+					}); lerr == nil {
+						msg = lmsg
 					}
 
 					out = append(out, msg)
@@ -175,24 +161,15 @@ func (e *checkPassErrors) Error() string {
 }
 
 type checkPassError struct {
-	digits, capital int
-	code            string
+	needVal int
+	code    string
 }
 
 func (e *checkPassError) Error() string {
-	errMsgs := make([]string, 0)
-	switch {
-	case e.digits == 0 && e.capital == 0:
-		errMsgs = append(errMsgs, e.code)
-
-	case e.digits > 0:
-		errMsgs = append(errMsgs, "there must be at least {{.digit}} digits in the value")
-
-	case e.capital > 0:
-		errMsgs = append(errMsgs, "there must be at least {{.capital}} capital letters in the value")
+	if e.needVal == 0 {
+		return e.code
 	}
-
-	return strings.Join(errMsgs, "; ")
+	return fmt.Sprintf("there must be at least %d in the value", e.needVal)
 }
 
 func checkSimplePass(value interface{}) error {
@@ -232,14 +209,14 @@ func checkSimplePass(value interface{}) error {
 	switch {
 	case digits < _minDigit:
 		errs = append(errs, &checkPassError{
-			digits: _minDigit,
-			code:   ValidationInternalErrNotEnoughDigits,
+			needVal: _minDigit,
+			code:    ValidationInternalErrNotEnoughDigits,
 		})
 		fallthrough
 
 	case capital < _minCapital:
 		errs = append(errs, &checkPassError{
-			capital: _minCapital,
+			needVal: _minCapital,
 			code:    ValidationInternalErrNotEnoughCapitalLetters,
 		})
 	}
