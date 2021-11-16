@@ -32,7 +32,7 @@ services:
           memory: "0.2G"
 
   static:
-    image: ${static_image:-test-static:latest}
+    image: ${static_image:-127.0.0.1:5000/test-static:latest}
     environment:
       - PORT=${STATIC_PORT:-3000}
     ports:
@@ -60,7 +60,7 @@ services:
           memory: "0.2G"
 
   nginx:
-    image: nginx:1.19
+    image: ${nginx_image:-nginx:1.19}
     volumes:
       - ../cmd/static/dist/spa:/usr/share/nginx/html:ro
     ports:

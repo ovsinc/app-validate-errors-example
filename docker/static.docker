@@ -1,5 +1,7 @@
 FROM busybox:latest
 
+USER nobody
+
 WORKDIR /
 
 COPY  static /static

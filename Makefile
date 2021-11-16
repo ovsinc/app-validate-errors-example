@@ -3,13 +3,17 @@ _STATIC_DIR := "${_CURDIR}/cmd/static/dist"
 _UI_DIR := "${_CURDIR}/ui/dist"
 _BUILD_DIR := "${_CURDIR}/build"
 
-STATIC_IMAGE := "test-static:latest"
-API_IMAGE := "test-api:latest"
-STATIC_RUST_IMAGE := "test-static-rust:latest"
 
+REGISTRY_URL = "127.0.0.1:5000"
 
-STATIC_NAME_CN = "test-static"
-API_NAME_CN = "test-api"
+STATIC_IMG := "test-static"
+STATIC_IMG_TAG := "v1"
+STATIC_IMAGE := "${STATIC_IMG}:${STATIC_IMG_TAG}"
+
+API_IMG := "test-api"
+API_IMG_TAG := "v1"
+API_IMAGE := "${API_IMG}:${API_IMG_TAG}"
+
 
 STATIC_OUT := "${_CURDIR}/build/static"
 API_OUT := "${_CURDIR}/build/service"
@@ -49,17 +53,22 @@ build_api: ## Build the API server
 .PHONY: build_docker
 build_docker: ## Build the Docker images
 	@docker build \
+		--force-rm \
+		--no-cache \
 		--tag "${STATIC_IMAGE}" \
 		--file "${_CURDIR}/docker/static.docker" \
 		"${_BUILD_DIR}"
+	@docker tag "${STATIC_IMAGE}" "${STATIC_IMG}:latest"
+	@docker tag "${STATIC_IMAGE}" "${REGISTRY_URL}/${STATIC_IMG}:latest"
+	@docker push "${REGISTRY_URL}/${STATIC_IMG}:latest"
 	@docker build \
+		--force-rm \
 		--tag "${API_IMAGE}" \
 		--file "${_CURDIR}/docker/service.docker" \
 		"${_BUILD_DIR}"
-	@docker build \
-		--tag "${STATIC_RUST_IMAGE}" \
-		--file "${_CURDIR}/docker/static_rust.docker" \
-		"${_BUILD_DIR}"
+	@docker tag "${API_IMAGE}" "${API_IMG}:latest"
+	@docker tag "${API_IMAGE}" "${REGISTRY_URL}/${API_IMG}:latest"
+	@docker push "${REGISTRY_URL}/${API_IMG}:latest"
 
 .PHONY: clean
 clean: ## Clean
@@ -71,6 +80,9 @@ clean: ## Clean
 .PHONY: run
 run: ## Run docker services
 	@docker stack deploy -c "${_CURDIR}/docker/docker-compose.yml" test
+
+.PHONY: start
+start: run ## Run docker services
 
 stop: ## Stop docker services
 	@docker stack rm test
