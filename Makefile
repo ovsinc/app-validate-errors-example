@@ -59,8 +59,10 @@ build_docker: ## Build the Docker images
 		--file "${_CURDIR}/docker/static.docker" \
 		"${_BUILD_DIR}"
 	@docker tag "${STATIC_IMAGE}" "${STATIC_IMG}:latest"
+	@docker tag "${STATIC_IMAGE}" "${REGISTRY_URL}/${STATIC_IMAGE}"
 	@docker tag "${STATIC_IMAGE}" "${REGISTRY_URL}/${STATIC_IMG}:latest"
-	@docker push "${REGISTRY_URL}/${STATIC_IMG}:latest"
+	docker push "${REGISTRY_URL}/${STATIC_IMAGE}"
+	docker push "${REGISTRY_URL}/${STATIC_IMG}:latest"
 	@docker build \
 		--force-rm \
 		--tag "${API_IMAGE}" \
@@ -68,7 +70,9 @@ build_docker: ## Build the Docker images
 		"${_BUILD_DIR}"
 	@docker tag "${API_IMAGE}" "${API_IMG}:latest"
 	@docker tag "${API_IMAGE}" "${REGISTRY_URL}/${API_IMG}:latest"
-	@docker push "${REGISTRY_URL}/${API_IMG}:latest"
+	@docker tag "${API_IMAGE}" "${REGISTRY_URL}/${API_IMAGE}"
+	docker push "${REGISTRY_URL}/${API_IMAGE}"
+	docker push "${REGISTRY_URL}/${API_IMG}:latest"
 
 .PHONY: clean
 clean: ## Clean

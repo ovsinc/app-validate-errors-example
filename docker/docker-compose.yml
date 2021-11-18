@@ -4,12 +4,14 @@ services:
 
   # https://github.com/Tecnativa/docker-socket-proxy
   socket-proxy:
-    image: tecnativa/docker-socket-proxy
+    image: tecnativa/docker-socket-proxy:latest
     environment:
       - CONTAINERS=1
       - NETWORKS=1
       - NODES=1
       - SERVICES=1
+      - TASKS=1
+      - SWARM=1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -38,6 +40,7 @@ services:
       socket-net: null
       internal-net: null
     command: --api.insecure=true --providers.docker
+      --providers.docker.swarmMode=true
       --providers.docker.exposedbydefault=false
       --providers.docker.constraints="Label(`mynode_name`,`${NODE_NAME:-mymaster}`)"
       --providers.docker.endpoint="tcp://socket-proxy:2375"
@@ -45,21 +48,25 @@ services:
       - target: 80
         published: 80
         protocol: tcp
-        mode: ingress
+        mode: host
       - target: 8080
         published: 8080
         protocol: tcp
-        mode: ingress
+        mode: host
     deploy:
       mode: global
       update_config:
         parallelism: 1
         delay: 3s
+        order: "start-first"
       restart_policy:
         condition: any
         max_attempts: 20
         window: 10s
         delay: 3s
+      placement:
+        constraints:
+          - node.labels.mynode_name == ${NODE_NAME:-mymaster}
       resources:
         limits:
           cpus: "2"
@@ -77,34 +84,35 @@ services:
         aliases:
           - internal-net-test-api
           - test-api
-    labels:
-      - "mynode_name=${NODE_NAME:-mymaster}"
-
-      - "traefik.enable=true"
-
-      - "traefik.http.routers.backend.rule=(PathPrefix(`/api`) &&
-        Method(`POST`)) || (PathPrefix(`/health`) && Method(`GET`))"
-      - "traefik.http.routers.backend.middlewares=apiHeaders"
-
-      - "traefik.http.services.backend.loadbalancer.server.port=${API_PORT:-800\
-        0}"
-
-      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/health"
-      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=60s"
-      - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=10s"
-
-      - "traefik.http.middlewares.apiHeaders.headers.framedeny=true"
-      - "traefik.http.middlewares.apiHeaders.headers.browserxssfilter=true"
-      - "traefik.http.middlewares.apiHeaders.headers.customrequestheaders.X-Req\
-        uest-API-Name=api-app-req"
-      - "traefik.http.middlewares.apiHeaders.headers.customresponseheaders.X-Re\
-        sponse-API-Name=api-app-resp"
-      - "traefik.http.middlewares.apiHeaders.headers.accesscontrolalloworiginli\
-        st=*"
-      - "traefik.http.middlewares.apiHeaders.headers.accesscontrolallowmethods=\
-        POST"
-
     deploy:
+      labels:
+        - "mynode_name=${NODE_NAME:-mymaster}"
+
+        - "traefik.enable=true"
+
+        - "traefik.http.routers.backend.rule=(PathPrefix(`/api`) &&
+          Method(`POST`)) || (PathPrefix(`/health`) && Method(`GET`))"
+        - "traefik.http.routers.backend.middlewares=apiHeaders"
+
+        - "traefik.http.services.backend.loadbalancer.sticky.cookie.httpOnly=tr\
+          ue"
+        - "traefik.http.services.backend.loadbalancer.server.port=${API_PORT:-8\
+          000}"
+
+        - "traefik.http.services.backend.loadbalancer.healthcheck.path=/health"
+        - "traefik.http.services.backend.loadbalancer.healthcheck.interval=60s"
+        - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=10s"
+
+        - "traefik.http.middlewares.apiHeaders.headers.framedeny=true"
+        - "traefik.http.middlewares.apiHeaders.headers.browserxssfilter=true"
+        - "traefik.http.middlewares.apiHeaders.headers.customrequestheaders.X-R\
+          equest-API-Name=api-app-req"
+        - "traefik.http.middlewares.apiHeaders.headers.customresponseheaders.X-\
+          Response-API-Name=api-app-resp"
+        - "traefik.http.middlewares.apiHeaders.headers.accesscontrolalloworigin\
+          list=*"
+        - "traefik.http.middlewares.apiHeaders.headers.accesscontrolallowmethod\
+          s=POST"
       mode: replicated
       replicas: ${API_REPLICAS:-2}
       placement:
@@ -114,6 +122,12 @@ services:
       update_config:
         parallelism: 1
         delay: 3s
+        order: "start-first"
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 1s
+        failure_action: pause
       restart_policy:
         condition: any
         max_attempts: 20
@@ -147,34 +161,34 @@ services:
         aliases:
           - internal-net-test-static
           - test-static
-    labels:
-      - "mynode_name=${NODE_NAME:-mymaster}"
-
-      - "traefik.enable=true"
-
-      - "traefik.http.routers.static.rule=PathPrefix(`/`) && Method(`GET`,
-        `HEAD`)"
-      - "traefik.http.routers.static.middlewares=staticHeaders"
-
-      - "traefik.http.services.static.loadbalancer.server.port=${STATIC_PORT:-3\
-        000}"
-
-      - "traefik.http.services.static.loadbalancer.healthcheck.path=/"
-      - "traefik.http.services.static.loadbalancer.healthcheck.interval=60s"
-      - "traefik.http.services.static.loadbalancer.healthcheck.timeout=10s"
-
-      - "traefik.http.middlewares.staticHeaders.headers.framedeny=true"
-      - "traefik.http.middlewares.staticHeaders.headers.browserxssfilter=true"
-      - "traefik.http.middlewares.staticHeaders.headers.customrequestheaders.X-\
-        Request-Static-Name=static-app-req"
-      - "traefik.http.middlewares.staticHeaders.headers.customresponseheaders.X\
-        -Response-Static-Name=static-app-resp"
-      - "traefik.http.middlewares.staticHeaders.headers.accesscontrolalloworigi\
-        nlist=*"
-      - "traefik.http.middlewares.staticHeaders.headers.accesscontrolallowmetho\
-        ds=GET,HEAD"
-
     deploy:
+      labels:
+        - "mynode_name=${NODE_NAME:-mymaster}"
+
+        - "traefik.enable=true"
+
+        - "traefik.http.routers.static.rule=PathPrefix(`/`) && Method(`GET`,
+          `HEAD`)"
+        - "traefik.http.routers.static.middlewares=staticHeaders"
+
+        - "traefik.http.services.static.loadbalancer.sticky.cookie.httpOnly=true"
+        - "traefik.http.services.static.loadbalancer.server.port=${STATIC_PORT:\
+          -3000}"
+
+        - "traefik.http.services.static.loadbalancer.healthcheck.path=/"
+        - "traefik.http.services.static.loadbalancer.healthcheck.interval=60s"
+        - "traefik.http.services.static.loadbalancer.healthcheck.timeout=10s"
+
+        - "traefik.http.middlewares.staticHeaders.headers.framedeny=true"
+        - "traefik.http.middlewares.staticHeaders.headers.browserxssfilter=true"
+        - "traefik.http.middlewares.staticHeaders.headers.customrequestheaders.\
+          X-Request-Static-Name=static-app-req"
+        - "traefik.http.middlewares.staticHeaders.headers.customresponseheaders\
+          .X-Response-Static-Name=static-app-resp"
+        - "traefik.http.middlewares.staticHeaders.headers.accesscontrolallowori\
+          ginlist=*"
+        - "traefik.http.middlewares.staticHeaders.headers.accesscontrolallowmet\
+          hods=GET,HEAD"
       mode: replicated
       replicas: ${STATIC_REPLICAS:-3}
       placement:
@@ -184,6 +198,12 @@ services:
       update_config:
         parallelism: 1
         delay: 3s
+        order: "start-first"
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 3s
+        failure_action: pause
       restart_policy:
         condition: any
         max_attempts: 20

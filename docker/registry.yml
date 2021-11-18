@@ -4,7 +4,7 @@ version: '3.9'
 services:
 
   registry:
-    image: registry:latest
+    image: ${registry_image:-registry:2.6}
     ports:
       - target: 5000
         published: 5000
@@ -12,7 +12,10 @@ services:
         mode: ingress
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: ${registry_replicas:-1}
+      placement:
+        constraints:
+          - node.role == manager  # или более явно привязать к определенной ноде
       update_config:
         parallelism: 1
         delay: 3s
