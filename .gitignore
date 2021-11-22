@@ -16,3 +16,6 @@
 
 /build/*
 !/build/docker
+
+/tf/.terraform*
+/tf/.terraform/*

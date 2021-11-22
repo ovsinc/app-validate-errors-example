@@ -68,7 +68,10 @@ services:
   nginx:
     image: ${nginx_image:-nginx:1.19}
     volumes:
-      - ../cmd/static/dist/spa:/usr/share/nginx/html:ro
+      - type: bind
+        source: ../cmd/static/dist/spa
+        target: /usr/share/nginx/html
+        read_only: true
     ports:
       - target: 80
         published: 80
