@@ -84,6 +84,16 @@ services:
         aliases:
           - internal-net-test-api
           - test-api
+    secrets:
+      - source: my_secret
+        target: my_secret
+        uid: '65534' # nobody
+        gid: '65534' # nobody
+        mode: 0440
+    configs:
+      - source: my_config
+        target: /my_config
+        mode: 0644
     deploy:
       labels:
         - "mynode_name=${NODE_NAME:-mymaster}"
@@ -231,3 +241,11 @@ services:
 networks:
   internal-net: null
   socket-net: null
+
+secrets:
+  my_secret:
+    file: ./secrets/secret_data
+
+configs:
+  my_config:
+    file: ./confs/my_conf.json

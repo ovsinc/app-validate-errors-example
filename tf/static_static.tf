@@ -1,11 +1,4 @@
-# data "docker_registry_image" "static_img" {
-#   name                 = "127.0.0.1:5000/test-static:latest"
-#   # insecure_skip_verify = true
-# }
-
 resource "docker_image" "static" {
-  # name          = data.docker_registry_image.static_img.name
-  # pull_triggers = [data.docker_registry_image.static_img.sha256_digest]
   name = "127.0.0.1:5000/test-static:latest"
 }
 

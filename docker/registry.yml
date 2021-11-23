@@ -1,6 +1,5 @@
 version: '3.9'
 
-
 services:
 
   registry:
@@ -10,12 +9,18 @@ services:
         published: 5000
         protocol: tcp
         mode: ingress
+    volumes:
+      - type: volume
+        source: data
+        target: /var/lib/registry
+        volume:
+          nocopy: true
     deploy:
       mode: replicated
       replicas: ${registry_replicas:-1}
       placement:
         constraints:
-          - node.role == manager  # или более явно привязать к определенной ноде
+          - node.role == manager # или более явно привязать к определенной ноде
       update_config:
         parallelism: 1
         delay: 3s
@@ -31,3 +36,11 @@ services:
         reservations:
           cpus: "0.5"
           memory: "0.2G"
+
+volumes:
+  data:
+    driver: "local"
+    driver_opts:
+      device: "/var/tmp/registry_data"
+      o: "bind"
+      type: "none"
