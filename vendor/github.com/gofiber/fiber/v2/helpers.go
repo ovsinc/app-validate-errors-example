@@ -25,37 +25,6 @@ import (
 )
 
 /* #nosec */
-// lnMetadata will close the listener and return the addr and tls config
-func lnMetadata(network string, ln net.Listener) (addr string, cfg *tls.Config) {
-	// Get addr
-	addr = ln.Addr().String()
-
-	// Close listener
-	if err := ln.Close(); err != nil {
-		return
-	}
-
-	// Wait for the listener to be closed
-	var closed bool
-	for i := 0; i < 10; i++ {
-		conn, err := net.DialTimeout(network, addr, 3*time.Second)
-		if err != nil || conn == nil {
-			closed = true
-			break
-		}
-		_ = conn.Close()
-		time.Sleep(100 * time.Millisecond)
-	}
-	if !closed {
-		panic("listener: " + addr + ": Only one usage of each socket address (protocol/network address/port) is normally permitted.")
-	}
-
-	cfg = getTlsConfig(ln)
-
-	return
-}
-
-/* #nosec */
 // getTlsConfig returns a net listener's tls config
 func getTlsConfig(ln net.Listener) *tls.Config {
 	// Get listener type
@@ -68,7 +37,8 @@ func getTlsConfig(ln net.Listener) *tls.Config {
 			// Get private field from value
 			if field := val.FieldByName("config"); field.Type() != nil {
 				// Copy value from pointer field (unsafe)
-				if newval := reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())); newval.Type() != nil {
+				newval := reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())) // #nosec G103
+				if newval.Type() != nil {
 					// Get element from pointer
 					if elem := newval.Elem(); elem.Type() != nil {
 						// Cast value to *tls.Config
@@ -221,7 +191,7 @@ func setETag(c *Ctx, weak bool) {
 }
 
 func getGroupPath(prefix, path string) string {
-	if len(path) == 0 || path == "/" {
+	if len(path) == 0 {
 		return prefix
 	}
 
@@ -337,18 +307,6 @@ func isNoCache(cacheControl string) bool {
 	return true
 }
 
-// https://golang.org/src/net/net.go#L113
-// Helper methods for application#test
-type testAddr string
-
-func (a testAddr) Network() string {
-	return string(a)
-}
-
-func (a testAddr) String() string {
-	return string(a)
-}
-
 type testConn struct {
 	r bytes.Buffer
 	w bytes.Buffer
@@ -358,8 +316,8 @@ func (c *testConn) Read(b []byte) (int, error)  { return c.r.Read(b) }
 func (c *testConn) Write(b []byte) (int, error) { return c.w.Write(b) }
 func (c *testConn) Close() error                { return nil }
 
-func (c *testConn) LocalAddr() net.Addr                { return testAddr("local-addr") }
-func (c *testConn) RemoteAddr() net.Addr               { return testAddr("remote-addr") }
+func (c *testConn) LocalAddr() net.Addr                { return &net.TCPAddr{Port: 0, Zone: "", IP: net.IPv4zero} }
+func (c *testConn) RemoteAddr() net.Addr               { return &net.TCPAddr{Port: 0, Zone: "", IP: net.IPv4zero} }
 func (c *testConn) SetDeadline(_ time.Time) error      { return nil }
 func (c *testConn) SetReadDeadline(_ time.Time) error  { return nil }
 func (c *testConn) SetWriteDeadline(_ time.Time) error { return nil }
@@ -427,21 +385,25 @@ const (
 
 // MIME types that are commonly used
 const (
-	MIMETextXML               = "text/xml"
-	MIMETextHTML              = "text/html"
-	MIMETextPlain             = "text/plain"
-	MIMEApplicationXML        = "application/xml"
-	MIMEApplicationJSON       = "application/json"
+	MIMETextXML         = "text/xml"
+	MIMETextHTML        = "text/html"
+	MIMETextPlain       = "text/plain"
+	MIMETextJavaScript  = "text/javascript"
+	MIMEApplicationXML  = "application/xml"
+	MIMEApplicationJSON = "application/json"
+	// Deprecated: use MIMETextJavaScript instead
 	MIMEApplicationJavaScript = "application/javascript"
 	MIMEApplicationForm       = "application/x-www-form-urlencoded"
 	MIMEOctetStream           = "application/octet-stream"
 	MIMEMultipartForm         = "multipart/form-data"
 
-	MIMETextXMLCharsetUTF8               = "text/xml; charset=utf-8"
-	MIMETextHTMLCharsetUTF8              = "text/html; charset=utf-8"
-	MIMETextPlainCharsetUTF8             = "text/plain; charset=utf-8"
-	MIMEApplicationXMLCharsetUTF8        = "application/xml; charset=utf-8"
-	MIMEApplicationJSONCharsetUTF8       = "application/json; charset=utf-8"
+	MIMETextXMLCharsetUTF8         = "text/xml; charset=utf-8"
+	MIMETextHTMLCharsetUTF8        = "text/html; charset=utf-8"
+	MIMETextPlainCharsetUTF8       = "text/plain; charset=utf-8"
+	MIMETextJavaScriptCharsetUTF8  = "text/javascript; charset=utf-8"
+	MIMEApplicationXMLCharsetUTF8  = "application/xml; charset=utf-8"
+	MIMEApplicationJSONCharsetUTF8 = "application/json; charset=utf-8"
+	// Deprecated: use MIMETextJavaScriptCharsetUTF8 instead
 	MIMEApplicationJavaScriptCharsetUTF8 = "application/javascript; charset=utf-8"
 )
 
@@ -705,4 +667,25 @@ const (
 	CookieSameSiteLaxMode    = "lax"
 	CookieSameSiteStrictMode = "strict"
 	CookieSameSiteNoneMode   = "none"
+)
+
+// Route Constraints
+const (
+	ConstraintInt             = "int"
+	ConstraintBool            = "bool"
+	ConstraintFloat           = "float"
+	ConstraintAlpha           = "alpha"
+	ConstraintGuid            = "guid"
+	ConstraintMinLen          = "minLen"
+	ConstraintMaxLen          = "maxLen"
+	ConstraintLen             = "len"
+	ConstraintBetweenLen      = "betweenLen"
+	ConstraintMinLenLower     = "minlen"
+	ConstraintMaxLenLower     = "maxlen"
+	ConstraintBetweenLenLower = "betweenlen"
+	ConstraintMin             = "min"
+	ConstraintMax             = "max"
+	ConstraintRange           = "range"
+	ConstraintDatetime        = "datetime"
+	ConstraintRegex           = "regex"
 )

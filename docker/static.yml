@@ -42,12 +42,12 @@ services:
         mode: ingress
     deploy:
       mode: replicated
-      replicas: 3
+      replicas: 1
       update_config:
         parallelism: 2
         delay: 3s
         failure_action: rollback
-        # order: "start-first"
+        order: "start-first"
       rollback_config:
         parallelism: 1
         delay: 1s

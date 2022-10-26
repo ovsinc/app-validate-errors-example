@@ -12,9 +12,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/internal/bytebufferpool"
-	"github.com/gofiber/fiber/v2/internal/colorable"
 	"github.com/gofiber/fiber/v2/internal/fasttemplate"
-	"github.com/gofiber/fiber/v2/internal/isatty"
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 	"github.com/valyala/fasthttp"
 )
 
@@ -35,6 +35,7 @@ const (
 	TagLatency           = "latency"
 	TagStatus            = "status"
 	TagResBody           = "resBody"
+	TagReqHeaders        = "reqHeaders"
 	TagQueryStringParams = "queryParams"
 	TagBody              = "body"
 	TagBytesSent         = "bytesSent"
@@ -60,19 +61,6 @@ const (
 	TagReset      = "reset"
 )
 
-// Color values
-const (
-	cBlack   = "\u001b[90m"
-	cRed     = "\u001b[91m"
-	cGreen   = "\u001b[92m"
-	cYellow  = "\u001b[93m"
-	cBlue    = "\u001b[94m"
-	cMagenta = "\u001b[95m"
-	cCyan    = "\u001b[96m"
-	cWhite   = "\u001b[97m"
-	cReset   = "\u001b[0m"
-)
-
 // New creates a new middleware handler
 func New(config ...Config) fiber.Handler {
 	// Set default config
@@ -96,7 +84,7 @@ func New(config ...Config) fiber.Handler {
 	var timestamp atomic.Value
 	timestamp.Store(time.Now().In(cfg.timeZoneLocation).Format(cfg.TimeFormat))
 
-	// Update date/time every 750 milliseconds in a separate go routine
+	// Update date/time every 500 milliseconds in a separate go routine
 	if strings.Contains(cfg.Format, "${time}") {
 		go func() {
 			for {
@@ -118,9 +106,9 @@ func New(config ...Config) fiber.Handler {
 
 	// If colors are enabled, check terminal compatibility
 	if cfg.enableColors {
-		cfg.Output = colorable.NewColorableStderr()
-		if os.Getenv("TERM") == "dumb" || (!isatty.IsTerminal(os.Stderr.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd())) {
-			cfg.Output = colorable.NewNonColorable(os.Stderr)
+		cfg.Output = colorable.NewColorableStdout()
+		if os.Getenv("TERM") == "dumb" || os.Getenv("NO_COLOR") == "1" || (!isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stdout.Fd())) {
+			cfg.Output = colorable.NewNonColorable(os.Stdout)
 		}
 	}
 	errPadding := 15
@@ -131,6 +119,9 @@ func New(config ...Config) fiber.Handler {
 		if cfg.Next != nil && cfg.Next(c) {
 			return c.Next()
 		}
+
+		// Alias colors
+		colors := c.App().Config().ColorScheme
 
 		// Set error handler once
 		once.Do(func() {
@@ -174,20 +165,20 @@ func New(config ...Config) fiber.Handler {
 		buf := bytebufferpool.Get()
 
 		// Default output when no custom Format or io.Writer is given
-		if cfg.enableColors {
+		if cfg.enableColors && cfg.Format == ConfigDefault.Format {
 			// Format error if exist
 			formatErr := ""
 			if chainErr != nil {
-				formatErr = cRed + " | " + chainErr.Error() + cReset
+				formatErr = colors.Red + " | " + chainErr.Error() + colors.Reset
 			}
 
 			// Format log to buffer
 			_, _ = buf.WriteString(fmt.Sprintf("%s |%s %3d %s| %7v | %15s |%s %-7s %s| %-"+errPaddingStr+"s %s\n",
 				timestamp.Load().(string),
-				statusColor(c.Response().StatusCode()), c.Response().StatusCode(), cReset,
+				statusColor(c.Response().StatusCode(), colors), c.Response().StatusCode(), colors.Reset,
 				stop.Sub(start).Round(time.Millisecond),
 				c.IP(),
-				methodColor(c.Method()), c.Method(), cReset,
+				methodColor(c.Method(), colors), c.Method(), colors.Reset,
 				c.Path(),
 				formatErr,
 			))
@@ -228,7 +219,7 @@ func New(config ...Config) fiber.Handler {
 			case TagUA:
 				return buf.WriteString(c.Get(fiber.HeaderUserAgent))
 			case TagLatency:
-				return buf.WriteString(stop.Sub(start).String())
+				return buf.WriteString(fmt.Sprintf("%7v", stop.Sub(start).Round(time.Millisecond)))
 			case TagBody:
 				return buf.Write(c.Body())
 			case TagBytesReceived:
@@ -238,31 +229,43 @@ func New(config ...Config) fiber.Handler {
 			case TagRoute:
 				return buf.WriteString(c.Route().Path)
 			case TagStatus:
+				if cfg.enableColors {
+					return buf.WriteString(fmt.Sprintf("%s %3d %s", statusColor(c.Response().StatusCode(), colors), c.Response().StatusCode(), colors.Reset))
+				}
 				return appendInt(buf, c.Response().StatusCode())
 			case TagResBody:
 				return buf.Write(c.Response().Body())
+			case TagReqHeaders:
+				reqHeaders := make([]string, 0)
+				for k, v := range c.GetReqHeaders() {
+					reqHeaders = append(reqHeaders, k+"="+v)
+				}
+				return buf.Write([]byte(strings.Join(reqHeaders, "&")))
 			case TagQueryStringParams:
 				return buf.WriteString(c.Request().URI().QueryArgs().String())
 			case TagMethod:
+				if cfg.enableColors {
+					return buf.WriteString(fmt.Sprintf("%s %-7s %s", methodColor(c.Method(), colors), c.Method(), colors.Reset))
+				}
 				return buf.WriteString(c.Method())
 			case TagBlack:
-				return buf.WriteString(cBlack)
+				return buf.WriteString(colors.Black)
 			case TagRed:
-				return buf.WriteString(cRed)
+				return buf.WriteString(colors.Red)
 			case TagGreen:
-				return buf.WriteString(cGreen)
+				return buf.WriteString(colors.Green)
 			case TagYellow:
-				return buf.WriteString(cYellow)
+				return buf.WriteString(colors.Yellow)
 			case TagBlue:
-				return buf.WriteString(cBlue)
+				return buf.WriteString(colors.Blue)
 			case TagMagenta:
-				return buf.WriteString(cMagenta)
+				return buf.WriteString(colors.Magenta)
 			case TagCyan:
-				return buf.WriteString(cCyan)
+				return buf.WriteString(colors.Cyan)
 			case TagWhite:
-				return buf.WriteString(cWhite)
+				return buf.WriteString(colors.White)
 			case TagReset:
-				return buf.WriteString(cReset)
+				return buf.WriteString(colors.Reset)
 			case TagError:
 				if chainErr != nil {
 					return buf.WriteString(chainErr.Error())

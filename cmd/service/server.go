@@ -49,7 +49,8 @@ func getGouters(app *fiber.App) Routers {
 	apiGroup.Use(func(c *fiber.Ctx) error {
 		// поддерживаем только JSON
 		if !c.Is("json") {
-			return c.Status(http.StatusBadRequest).
+			return c.
+				Status(http.StatusBadRequest).
 				JSON(
 					ports.ChangePasswordResponse{
 						Success: false,

@@ -37,6 +37,8 @@ func (*OnStopExecuting) event()   {}
 func (*OnStopExecuted) event()    {}
 func (*Supplied) event()          {}
 func (*Provided) event()          {}
+func (*Replaced) event()          {}
+func (*Decorated) event()         {}
 func (*Invoking) event()          {}
 func (*Invoked) event()           {}
 func (*Stopping) event()          {}
@@ -104,8 +106,11 @@ type OnStopExecuted struct {
 
 // Supplied is emitted after a value is added with fx.Supply.
 type Supplied struct {
-	// Name of the type of value that was added.
+	// TypeName is the name of the type of value that was added.
 	TypeName string
+
+	// ModuleName is the name of the module in which the value was added to.
+	ModuleName string
 
 	// Err is non-nil if we failed to supply the value.
 	Err error
@@ -121,7 +126,40 @@ type Provided struct {
 	// this constructor.
 	OutputTypeNames []string
 
+	// ModuleName is the name of the module in which the constructor was
+	// provided to.
+	ModuleName string
+
 	// Err is non-nil if we failed to provide this constructor.
+	Err error
+}
+
+// Replaced is emitted when a value replaces a type in Fx.
+type Replaced struct {
+	// OutputTypeNames is a list of names of types that were replaced.
+	OutputTypeNames []string
+
+	// ModuleName is the name of the module in which the value was added to.
+	ModuleName string
+
+	// Err is non-nil if we failed to supply the value.
+	Err error
+}
+
+// Decorated is emitted when a decorator is executed in Fx.
+type Decorated struct {
+	// DecoratorName is the name of the decorator function that was
+	// provided to Fx.
+	DecoratorName string
+
+	// ModuleName is the name of the module in which the value was added to.
+	ModuleName string
+
+	// OutputTypeNames is a list of names of types that are decorated by
+	// this decorator.
+	OutputTypeNames []string
+
+	// Err is non-nil if we failed to run this decorator.
 	Err error
 }
 
@@ -129,13 +167,19 @@ type Provided struct {
 type Invoking struct {
 	// FunctionName is the name of the function that will be invoked.
 	FunctionName string
+
+	// ModuleName is the name of the module in which the value was added to.
+	ModuleName string
 }
 
 // Invoked is emitted after we invoke a function specified with fx.Invoke,
-// whether it succeded or failed.
+// whether it succeeded or failed.
 type Invoked struct {
 	// Functionname is the name of the function that was invoked.
 	FunctionName string
+
+	// ModuleName is the name of the module in which the value was added to.
+	ModuleName string
 
 	// Err is non-nil if the function failed to execute.
 	Err error
@@ -175,7 +219,7 @@ type RollingBack struct {
 }
 
 // RolledBack is emitted after a service has been rolled back, whether it
-// succeded or not.
+// succeeded or not.
 type RolledBack struct {
 	// Err is non-nil if the rollback failed.
 	Err error

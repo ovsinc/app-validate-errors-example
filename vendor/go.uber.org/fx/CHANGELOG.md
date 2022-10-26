@@ -4,11 +4,89 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [1.18.2] - 2022-09-28
+### Added
+- Clarify ordering of `Invoke`s in `Module`s.
+
+### Fixed
+- Fix `Decorate` not being applied to transitive dependencies at root `App` level.
+
+  [1.18.2]: https://github.com/uber-go/fx/compare/v1.18.1...v1.18.2
+
+## [1.18.1] - 2022-08-08
+### Fixed
+- Fix a nil panic when `nil` is passed to `OnStart` and `OnStop` lifecycle methods.
+
+  [1.18.1]: https://github.com/uber-go/fx/compare/v1.18.0...v1.18.1
+
+## [1.18.0] - 2022-08-05
+### Added
+- Soft value groups that lets you specify value groups as best-effort dependencies.
+- `fx.OnStart` and `fx.OnStop` annotations which lets you annotate dependencies to provide
+  OnStart and OnStop lifecycle hooks.
+- A new `fxevent.Replaced` event written to `fxevent.Logger` following an `fx.Replace`.
+
+### Fixed
+- Upgrade Dig dependency to v1.14.1 to address a couple of issues with decorations. Refer to
+  Dig v1.14.1 release notes for more details.
+- `fx.WithLogger` no longer ignores decorations and replacements of types that
+  it depends on.
+- Don't run lifecycle hooks if the context for them has already expired.
+- `App.Start` and `App.Stop` no longer deadlock if the OnStart/OnStop hook
+  exits the current goroutine.
+- `fxevent.ConsoleLogger` no longer emits an extraneous argument for the
+  Supplied event.
+
+### Deprecated
+- `fx.Extract` in favor of `fx.Populate`.
+
+  [1.18.0]: https://github.com/uber-go/fx/compare/v1.17.1...v1.18.0
+
+## [1.17.1] - 2022-03-23
+### Added
+- Logging for provide/invoke/decorate now includes the associated `fx.Module` name.
+
+[1.17.1]: https://github.com/uber-go/fx/compare/v1.17.0...v1.17.1
+
+## [1.17.0] - 2022-02-28
+### Added
+- Add `fx.Module` which scopes any modifications made to the dependency graph.
+- Add `fx.Decorate` and `fx.Replace` that lets you modify a dependency graph with decorators.
+- Add `fxevent.Decorated` event which gets emitted upon a dependency getting decorated.
+
+### Changed
+- `fx.Annotate`: Validate that `fx.In` or `fx.Out` structs are not passed to it.
+- `fx.Annotate`: Upon failure to Provide, the error contains the actual location
+  of the provided constructor.
+
+[1.17.0]: https://github.com/uber-go/fx/compare/v1.16.0...v1.17.0
+
+## [1.16.0] - 2021-12-02
+### Added
+- Add the ability to provide a function as multiple interfaces at once using `fx.As`.
+
+### Changed
+- `fx.Annotate`: support variadic functions, and feeding value groups into them.
+
+### Fixed
+- Fix an issue where OnStop hooks weren't getting called on SIGINT on Windows.
+- Fix a data race between app.Done() and shutdown.
+
+[1.16.0]: https://github.com/uber-go/fx/compare/v1.15.0...v1.16.0
+
+## [1.15.0] - 2021-11-08
+### Added
+- Add `fx.Annotate` to allow users to provide parameter and result tags easily without
+  having to create `fx.In` or `fx.Out` structs.
+- Add `fx.As` that allows users to annotate a constructor to provide its result type(s) as
+  interface(s) that they implement instead of the types themselves.
+
 ### Fixed
 - Fix `fxevent.Stopped` not being logged when `App.Stop` is called.
 - Fix `fxevent.Started` or `fxevent.Stopped` not being logged when start or
   stop times out.
+
+[1.15.0]: https://github.com/uber-go/fx/compare/v1.14.2...v1.15.0
 
 ## [1.14.2] - 2021-08-16
 ### Changed

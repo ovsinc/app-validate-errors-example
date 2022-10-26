@@ -22,6 +22,7 @@ package lifecycle
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -29,6 +30,7 @@ import (
 	"time"
 
 	"go.uber.org/fx/fxevent"
+	"go.uber.org/fx/internal/fxclock"
 	"go.uber.org/fx/internal/fxreflect"
 	"go.uber.org/multierr"
 )
@@ -44,6 +46,7 @@ type Hook struct {
 
 // Lifecycle coordinates application lifecycle hooks.
 type Lifecycle struct {
+	clock        fxclock.Clock
 	logger       fxevent.Logger
 	hooks        []Hook
 	numStarted   int
@@ -54,8 +57,8 @@ type Lifecycle struct {
 }
 
 // New constructs a new Lifecycle.
-func New(logger fxevent.Logger) *Lifecycle {
-	return &Lifecycle{logger: logger}
+func New(logger fxevent.Logger, clock fxclock.Clock) *Lifecycle {
+	return &Lifecycle{logger: logger, clock: clock}
 }
 
 // Append adds a Hook to the lifecycle.
@@ -70,11 +73,20 @@ func (l *Lifecycle) Append(hook Hook) {
 // Start runs all OnStart hooks, returning immediately if it encounters an
 // error.
 func (l *Lifecycle) Start(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("called OnStart with nil context")
+	}
+
 	l.mu.Lock()
 	l.startRecords = make(HookRecords, 0, len(l.hooks))
 	l.mu.Unlock()
 
 	for _, hook := range l.hooks {
+		// if ctx has cancelled, bail out of the loop.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		if hook.OnStart != nil {
 			l.mu.Lock()
 			l.runningHook = hook
@@ -114,14 +126,18 @@ func (l *Lifecycle) runStartHook(ctx context.Context, hook Hook) (runtime time.D
 		})
 	}()
 
-	begin := time.Now()
+	begin := l.clock.Now()
 	err = hook.OnStart(ctx)
-	return time.Since(begin), err
+	return l.clock.Since(begin), err
 }
 
 // Stop runs any OnStop hooks whose OnStart counterpart succeeded. OnStop
 // hooks run in reverse order.
 func (l *Lifecycle) Stop(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("called OnStop with nil context")
+	}
+
 	l.mu.Lock()
 	l.stopRecords = make(HookRecords, 0, l.numStarted)
 	l.mu.Unlock()
@@ -129,6 +145,9 @@ func (l *Lifecycle) Stop(ctx context.Context) error {
 	// Run backward from last successful OnStart.
 	var errs []error
 	for ; l.numStarted > 0; l.numStarted-- {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		hook := l.hooks[l.numStarted-1]
 		if hook.OnStop == nil {
 			continue
@@ -172,9 +191,9 @@ func (l *Lifecycle) runStopHook(ctx context.Context, hook Hook) (runtime time.Du
 		})
 	}()
 
-	begin := time.Now()
+	begin := l.clock.Now()
 	err = hook.OnStop(ctx)
-	return time.Since(begin), err
+	return l.clock.Since(begin), err
 }
 
 // StartHookRecords returns the info of OnStart hooks that successfully ran till the end,

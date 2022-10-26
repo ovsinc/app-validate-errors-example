@@ -44,7 +44,7 @@ type result interface {
 	// stores them into the provided containerWriter.
 	//
 	// This MAY panic if the result does not consume a single value.
-	Extract(containerWriter, reflect.Value)
+	Extract(containerWriter, bool, reflect.Value)
 
 	// DotResult returns a slice of dot.Result(s).
 	DotResult() []*dot.Result
@@ -90,6 +90,10 @@ func newResult(t reflect.Type, opts resultOptions) (result, error) {
 				"cannot parse group %q", opts.Group, err)
 		}
 		rg := resultGrouped{Type: t, Group: g.Name, Flatten: g.Flatten}
+		if g.Soft {
+			return nil, errf("cannot use soft with result value groups",
+				"soft was used with group:%q", g.Name)
+		}
 		if g.Flatten {
 			if t.Kind() != reflect.Slice {
 				return nil, errf(
@@ -221,14 +225,14 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 	return rl, nil
 }
 
-func (resultList) Extract(containerWriter, reflect.Value) {
+func (resultList) Extract(containerWriter, bool, reflect.Value) {
 	digerror.BugPanicf("resultList.Extract() must never be called")
 }
 
-func (rl resultList) ExtractList(cw containerWriter, values []reflect.Value) error {
+func (rl resultList) ExtractList(cw containerWriter, decorated bool, values []reflect.Value) error {
 	for i, v := range values {
 		if resultIdx := rl.resultIndexes[i]; resultIdx >= 0 {
-			rl.Results[resultIdx].Extract(cw, v)
+			rl.Results[resultIdx].Extract(cw, decorated, v)
 			continue
 		}
 
@@ -304,7 +308,11 @@ func (rs resultSingle) DotResult() []*dot.Result {
 	return dotResults
 }
 
-func (rs resultSingle) Extract(cw containerWriter, v reflect.Value) {
+func (rs resultSingle) Extract(cw containerWriter, decorated bool, v reflect.Value) {
+	if decorated {
+		cw.setDecoratedValue(rs.Name, rs.Type, v)
+		return
+	}
 	cw.setValue(rs.Name, rs.Type, v)
 
 	for _, asType := range rs.As {
@@ -358,9 +366,9 @@ func newResultObject(t reflect.Type, opts resultOptions) (resultObject, error) {
 	return ro, nil
 }
 
-func (ro resultObject) Extract(cw containerWriter, v reflect.Value) {
+func (ro resultObject) Extract(cw containerWriter, decorated bool, v reflect.Value) {
 	for _, f := range ro.Fields {
-		f.Result.Extract(cw, v.Field(f.FieldIndex))
+		f.Result.Extract(cw, decorated, v.Field(f.FieldIndex))
 	}
 }
 
@@ -465,6 +473,9 @@ func newResultGrouped(f reflect.StructField) (resultGrouped, error) {
 	case g.Flatten && f.Type.Kind() != reflect.Slice:
 		return rg, errf("flatten can be applied to slices only",
 			"field %q (%v) is not a slice", f.Name, f.Type)
+	case g.Soft:
+		return rg, errf("cannot use soft with result value groups",
+			"soft was used with group %q", rg.Group)
 	case name != "":
 		return rg, errf(
 			"cannot use named values with value groups",
@@ -479,9 +490,15 @@ func newResultGrouped(f reflect.StructField) (resultGrouped, error) {
 	return rg, nil
 }
 
-func (rt resultGrouped) Extract(cw containerWriter, v reflect.Value) {
-	if !rt.Flatten {
+func (rt resultGrouped) Extract(cw containerWriter, decorated bool, v reflect.Value) {
+	// Decorated values are always flattened.
+	if !decorated && !rt.Flatten {
 		cw.submitGroupedValue(rt.Group, rt.Type, v)
+		return
+	}
+
+	if decorated {
+		cw.submitDecoratedGroupedValue(rt.Group, rt.Type, v)
 		return
 	}
 	for i := 0; i < v.Len(); i++ {
